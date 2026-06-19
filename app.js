@@ -1,5 +1,5 @@
 // ========================================================
-// PRIKART PUBLIC SCHOOL - CENTRAL LOGIC MANAGEMENT ENGINE
+// PRIKART PUBLIC SCHOOL - UPGRADED DATABASE LOGIC ENGINE
 // ========================================================
 
 let selectedRole = 'student';
@@ -15,7 +15,7 @@ const feedbackBox = document.getElementById('feedbackBox');
 const landingLayer = document.getElementById('landingLayer');
 const dashboardLayer = document.getElementById('dashboardLayer');
 
-// Dashboard Elements UI Targets
+// Dashboard UI Targets
 const dashName = document.getElementById('dashName');
 const dashRole = document.getElementById('dashRole');
 const cardName = document.getElementById('cardName');
@@ -23,6 +23,7 @@ const cardRoleBadge = document.getElementById('cardRoleBadge');
 const cardUid = document.getElementById('cardUid');
 const cardParentName = document.getElementById('cardParentName');
 const cardPhone = document.getElementById('cardPhone');
+const cardClassRoll = document.getElementById('cardClassRoll');
 const cardPhoto = document.getElementById('cardPhoto');
 
 // Config Modification Forms
@@ -32,7 +33,7 @@ const inputPhone = document.getElementById('inputPhone');
 const inputPhotoUrl = document.getElementById('inputPhotoUrl');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// Initialize LocalStorage Database schema if empty
+// Initialize Storage Schema
 if (!localStorage.getItem('prikart_users')) {
     localStorage.setItem('prikart_users', JSON.stringify({ student: [], teacher: [], parent: [] }));
 }
@@ -40,7 +41,7 @@ if (!localStorage.getItem('prikart_users')) {
 // Form Presentation Tabs Toggling Engine
 if(tabLogin && tabRegister) {
     tabLogin.addEventListener('click', () => {
-        tabLogin.className = "flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600 text-center cursor-pointer";
+        tabLogin.className = "flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600 text-center cursor-pointer font-bold";
         tabRegister.className = "flex-1 pb-3 text-slate-400 text-center cursor-pointer hover:text-slate-600";
         loginForm.classList.remove('hidden');
         registerForm.classList.add('hidden');
@@ -48,7 +49,7 @@ if(tabLogin && tabRegister) {
     });
 
     tabRegister.addEventListener('click', () => {
-        tabRegister.className = "flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600 text-center cursor-pointer";
+        tabRegister.className = "flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600 text-center cursor-pointer font-bold";
         tabLogin.className = "flex-1 pb-3 text-slate-400 text-center cursor-pointer hover:text-slate-600";
         registerForm.classList.remove('hidden');
         loginForm.classList.add('hidden');
@@ -56,7 +57,7 @@ if(tabLogin && tabRegister) {
     });
 }
 
-// Role Domain Click Selection Handler
+// Role Domain Selector Mapping
 document.querySelectorAll('.role-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.role-btn').forEach(b => {
@@ -67,7 +68,6 @@ document.querySelectorAll('.role-btn').forEach(btn => {
     });
 });
 
-// Feedback Utility Triggers
 function showFeedback(msg, isSuccess) {
     if(!feedbackBox) return;
     feedbackBox.classList.remove('hidden');
@@ -79,41 +79,52 @@ function clearFeedback() {
     if(feedbackBox) feedbackBox.classList.add('hidden'); 
 }
 
-// Secure Self-Registration Operation Handler
+// NEW: Full Database Registration Engine
 if(registerForm) {
     registerForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        
+        // Extracting all the database input values filled by the user
         const fullName = document.getElementById('regName').value.trim();
+        const parentName = document.getElementById('regParentName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
+        const phone = document.getElementById('regPhone').value.trim();
+        const className = document.getElementById('regClass').value.trim();
+        const rollNo = document.getElementById('regRoll').value.trim();
+        const photoUrl = document.getElementById('regPhotoUrl').value.trim();
         const password = document.getElementById('regPassword').value;
 
         let db = JSON.parse(localStorage.getItem('prikart_users'));
         const userExists = db[selectedRole].find(u => u.email === email);
 
         if (userExists) {
-            showFeedback("Security Alert: Data allocation mismatch, entity already configured!", false);
+            showFeedback("Registration Error: This email already holds a database node!", false);
             return;
         }
 
-        // Generate dynamic Unique ID tokens
+        // Generating a high-level Unique Student UID Code
         const uniqueUid = "PPS-" + Math.floor(10000 + Math.random() * 90000);
+        
+        // Saving the complete structured payload package into database list
         db[selectedRole].push({ 
             fullName, 
+            parentName,
             email, 
+            phone,
+            className,
+            rollNo,
+            photoUrl,
             password,
-            uid: uniqueUid,
-            parentName: "Not Configured",
-            phone: "Not Configured",
-            photoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150"
+            uid: uniqueUid
         });
         
         localStorage.setItem('prikart_users', JSON.stringify(db));
-        showFeedback("Identity Node Created! Directing to Secure Login tab.", true);
+        showFeedback("Database Record Created! Switch to 'Secure Login' tab to authenticate.", true);
         registerForm.reset();
     });
 }
 
-// Authentication Framework Deployment 
+// Authentication Logic Engine
 if(loginForm) {
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -125,7 +136,7 @@ if(loginForm) {
 
         if (user) {
             currentSessionUser = { role: selectedRole, email: email };
-            showFeedback("Session Approved! Syncing structures context...", true);
+            showFeedback("Access Granted! Fetching complete profile schema matrix...", true);
             
             setTimeout(() => {
                 landingLayer.classList.add('hidden');
@@ -133,31 +144,33 @@ if(loginForm) {
                 renderDashboardView(user);
             }, 1000);
         } else {
-            showFeedback("Verification denied! Key tokens or role selection mismatch.", false);
+            showFeedback("Access Denied! Credentials or role domain context mismatch.", false);
         }
     });
 }
 
-// Core Render Logic: Maps DB variables cleanly onto DOM elements
+// Mapping the Complete Pre-Filled Database onto the Profile Card
 function renderDashboardView(user) {
     if(!dashboardLayer) return;
     dashName.innerText = user.fullName.toUpperCase();
     cardName.innerText = user.fullName.toUpperCase();
-    dashRole.innerText = `${selectedRole} Secure Context`;
-    cardRoleBadge.innerText = `${selectedRole} Access Frame`;
+    dashRole.innerText = `${selectedRole} Workspace Context`;
+    cardRoleBadge.innerText = `${selectedRole} Domain Portal`;
     
+    // Injecting populated records safely into fields
     cardUid.innerText = user.uid;
     cardParentName.innerText = user.parentName;
     cardPhone.innerText = user.phone;
-    cardPhoto.src = user.photoUrl;
+    cardClassRoll.innerText = `${user.className} / Roll No: ${user.rollNo}`;
+    cardPhoto.src = user.photoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
 
-    // Input values parsing presets
-    inputParent.value = user.parentName === "Not Configured" ? "" : user.parentName;
-    inputPhone.value = user.phone === "Not Configured" ? "" : user.phone;
-    inputPhotoUrl.value = user.photoUrl.includes("unsplash.com") ? "" : user.photoUrl;
+    // Set inside modifier inputs automatically
+    inputParent.value = user.parentName;
+    inputPhone.value = user.phone;
+    inputPhotoUrl.value = user.photoUrl;
 }
 
-// Client-Side Profile Real-time Data Mutation Engine
+// Live Profile Records Modifier Engine
 if(updateProfileForm) {
     updateProfileForm.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -168,21 +181,18 @@ if(updateProfileForm) {
         let userIndex = roleList.findIndex(u => u.email === currentSessionUser.email);
 
         if (userIndex !== -1) {
-            // Overwrite node contexts directly
-            roleList[userIndex].parentName = inputParent.value.trim() || "Not Configured";
-            roleList[userIndex].phone = inputPhone.value.trim() || "Not Configured";
-            roleList[userIndex].photoUrl = inputPhotoUrl.value.trim() || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+            roleList[userIndex].parentName = inputParent.value.trim();
+            roleList[userIndex].phone = inputPhone.value.trim();
+            roleList[userIndex].photoUrl = inputPhotoUrl.value.trim();
 
             localStorage.setItem('prikart_users', JSON.stringify(db));
-            
-            // Instantly re-trigger clean UI update
             renderDashboardView(roleList[userIndex]);
-            alert("🔒 Central Ledger Records Updated Successfully!");
+            alert("🔒 Database Record Overwritten and Saved Successfully!");
         }
     });
 }
 
-// Safe Session De-allocation Link
+// Logout Link Trigger
 if(logoutBtn) {
     logoutBtn.addEventListener('click', () => {
         currentSessionUser = null;
