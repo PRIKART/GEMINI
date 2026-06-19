@@ -1,21 +1,15 @@
-// ========================================================
-// PRIKART PUBLIC SCHOOL - UPGRADED DATABASE LOGIC ENGINE
-// ========================================================
-
 let selectedRole = 'student';
-let currentSessionUser = null;
 
-// DOM Targets Extraction
+// Elements Extraction
 const tabLogin = document.getElementById('tabLogin');
 const tabRegister = document.getElementById('tabRegister');
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 const feedbackBox = document.getElementById('feedbackBox');
-
 const landingLayer = document.getElementById('landingLayer');
 const dashboardLayer = document.getElementById('dashboardLayer');
 
-// Dashboard UI Targets
+// Dashboard UI Selectors
 const dashName = document.getElementById('dashName');
 const dashRole = document.getElementById('dashRole');
 const cardName = document.getElementById('cardName');
@@ -26,19 +20,14 @@ const cardPhone = document.getElementById('cardPhone');
 const cardClassRoll = document.getElementById('cardClassRoll');
 const cardPhoto = document.getElementById('cardPhoto');
 
-// Config Modification Forms
+// Form Modifiers
 const updateProfileForm = document.getElementById('updateProfileForm');
 const inputParent = document.getElementById('inputParent');
 const inputPhone = document.getElementById('inputPhone');
 const inputPhotoUrl = document.getElementById('inputPhotoUrl');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// Initialize Storage Schema
-if (!localStorage.getItem('prikart_users')) {
-    localStorage.setItem('prikart_users', JSON.stringify({ student: [], teacher: [], parent: [] }));
-}
-
-// Form Presentation Tabs Toggling Engine
+// Toggles Tabs
 if(tabLogin && tabRegister) {
     tabLogin.addEventListener('click', () => {
         tabLogin.className = "flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600 text-center cursor-pointer font-bold";
@@ -47,7 +36,6 @@ if(tabLogin && tabRegister) {
         registerForm.classList.add('hidden');
         clearFeedback();
     });
-
     tabRegister.addEventListener('click', () => {
         tabRegister.className = "flex-1 pb-3 text-indigo-600 border-b-2 border-indigo-600 text-center cursor-pointer font-bold";
         tabLogin.className = "flex-1 pb-3 text-slate-400 text-center cursor-pointer hover:text-slate-600";
@@ -57,7 +45,7 @@ if(tabLogin && tabRegister) {
     });
 }
 
-// Role Domain Selector Mapping
+// Domain Roles Selection Links
 document.querySelectorAll('.role-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.role-btn').forEach(b => {
@@ -75,127 +63,110 @@ function showFeedback(msg, isSuccess) {
     feedbackBox.innerText = msg;
 }
 
-function clearFeedback() { 
-    if(feedbackBox) feedbackBox.classList.add('hidden'); 
-}
+function clearFeedback() { if(feedbackBox) feedbackBox.classList.add('hidden'); }
 
-// NEW: Full Database Registration Engine
+// Communicate Registration Data to Node Server API
 if(registerForm) {
-    registerForm.addEventListener('submit', (e) => {
+    registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        // Extracting all the database input values filled by the user
-        const fullName = document.getElementById('regName').value.trim();
-        const parentName = document.getElementById('regParentName').value.trim();
-        const email = document.getElementById('regEmail').value.trim();
-        const phone = document.getElementById('regPhone').value.trim();
-        const className = document.getElementById('regClass').value.trim();
-        const rollNo = document.getElementById('regRoll').value.trim();
-        const photoUrl = document.getElementById('regPhotoUrl').value.trim();
-        const password = document.getElementById('regPassword').value;
+        const payload = {
+            fullName: document.getElementById('regName').value.trim(),
+            parentName: document.getElementById('regParentName').value.trim(),
+            email: document.getElementById('regEmail').value.trim(),
+            phone: document.getElementById('regPhone').value.trim(),
+            className: document.getElementById('regClass').value.trim(),
+            rollNo: document.getElementById('regRoll').value.trim(),
+            photoUrl: document.getElementById('regPhotoUrl').value.trim(),
+            password: document.getElementById('regPassword').value,
+            role: selectedRole
+        };
 
-        let db = JSON.parse(localStorage.getItem('prikart_users'));
-        const userExists = db[selectedRole].find(u => u.email === email);
-
-        if (userExists) {
-            showFeedback("Registration Error: This email already holds a database node!", false);
-            return;
-        }
-
-        // Generating a high-level Unique Student UID Code
-        const uniqueUid = "PPS-" + Math.floor(10000 + Math.random() * 90000);
-        
-        // Saving the complete structured payload package into database list
-        db[selectedRole].push({ 
-            fullName, 
-            parentName,
-            email, 
-            phone,
-            className,
-            rollNo,
-            photoUrl,
-            password,
-            uid: uniqueUid
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-        
-        localStorage.setItem('prikart_users', JSON.stringify(db));
-        showFeedback("Database Record Created! Switch to 'Secure Login' tab to authenticate.", true);
-        registerForm.reset();
+        const data = await response.json();
+        showFeedback(data.message, data.success);
+        if(data.success) registerForm.reset();
     });
 }
 
-// Authentication Logic Engine
+// Pass Credentials to Server for Validation Checks
 if(loginForm) {
-    loginForm.addEventListener('submit', (e) => {
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
+        const payload = {
+            email: document.getElementById('loginEmail').value.trim(),
+            password: document.getElementById('loginPassword').value,
+            role: selectedRole
+        };
 
-        let db = JSON.parse(localStorage.getItem('prikart_users'));
-        const user = db[selectedRole].find(u => u.email === email && u.password === password);
-
-        if (user) {
-            currentSessionUser = { role: selectedRole, email: email };
-            showFeedback("Access Granted! Fetching complete profile schema matrix...", true);
-            
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showFeedback(data.message, true);
             setTimeout(() => {
                 landingLayer.classList.add('hidden');
                 dashboardLayer.classList.remove('hidden');
-                renderDashboardView(user);
+                renderDashboardView(data.user);
             }, 1000);
         } else {
-            showFeedback("Access Denied! Credentials or role domain context mismatch.", false);
+            showFeedback(data.message, false);
         }
     });
 }
 
-// Mapping the Complete Pre-Filled Database onto the Profile Card
 function renderDashboardView(user) {
     if(!dashboardLayer) return;
-    dashName.innerText = user.fullName.toUpperCase();
-    cardName.innerText = user.fullName.toUpperCase();
-    dashRole.innerText = `${selectedRole} Workspace Context`;
-    cardRoleBadge.innerText = `${selectedRole} Domain Portal`;
+    dashName.innerText = user.name.toUpperCase();
+    cardName.innerText = user.name.toUpperCase();
+    dashRole.innerText = `${user.role} Cloud Session`;
+    cardRoleBadge.innerText = `${user.role} Domain Portal`;
     
-    // Injecting populated records safely into fields
     cardUid.innerText = user.uid;
     cardParentName.innerText = user.parentName;
     cardPhone.innerText = user.phone;
     cardClassRoll.innerText = `${user.className} / Roll No: ${user.rollNo}`;
-    cardPhoto.src = user.photoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150";
+    cardPhoto.src = user.photoUrl;
 
-    // Set inside modifier inputs automatically
     inputParent.value = user.parentName;
     inputPhone.value = user.phone;
     inputPhotoUrl.value = user.photoUrl;
 }
 
-// Live Profile Records Modifier Engine
+// Push Updates back into Server Database Model Row
 if(updateProfileForm) {
-    updateProfileForm.addEventListener('submit', (e) => {
+    updateProfileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!currentSessionUser) return;
+        const payload = {
+            parentName: inputParent.value.trim(),
+            phone: inputPhone.value.trim(),
+            photoUrl: inputPhotoUrl.value.trim()
+        };
 
-        let db = JSON.parse(localStorage.getItem('prikart_users'));
-        let roleList = db[currentSessionUser.role];
-        let userIndex = roleList.findIndex(u => u.email === currentSessionUser.email);
-
-        if (userIndex !== -1) {
-            roleList[userIndex].parentName = inputParent.value.trim();
-            roleList[userIndex].phone = inputPhone.value.trim();
-            roleList[userIndex].photoUrl = inputPhotoUrl.value.trim();
-
-            localStorage.setItem('prikart_users', JSON.stringify(db));
-            renderDashboardView(roleList[userIndex]);
-            alert("🔒 Database Record Overwritten and Saved Successfully!");
+        const response = await fetch('/api/update-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if(data.success) {
+            renderDashboardView(data.user);
+            alert("🔒 Server Master Database Record Overwritten and Saved!");
         }
     });
 }
 
-// Logout Link Trigger
+// Session Disconnect Route Link
 if(logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-        currentSessionUser = null;
+    logoutBtn.addEventListener('click', async () => {
+        await fetch('/api/logout');
         dashboardLayer.classList.add('hidden');
         landingLayer.classList.remove('hidden');
         loginForm.reset();

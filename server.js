@@ -1,3 +1,7 @@
+// ========================================================
+// PRIKART PUBLIC SCHOOL - ENTERPRISE NODE BACKEND SERVER
+// ========================================================
+
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
@@ -5,100 +9,91 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware for parsing data & sessions
+// Data parsing settings & session configurations
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(session({
-    secret: 'prikart_secret_key_2026',
+    secret: 'prikart_central_crypto_key_2026',
     resave: false,
     saveUninitialized: true
 }));
 
-// Temporary Database in Server Memory (Professional structure)
-const usersDatabase = {
+// Professional In-Memory Database Schema Structure
+const serverDatabase = {
     student: [],
     teacher: [],
     parent: []
 };
 
-// Serve static HTML/CSS/JS seamlessly
+// Serve static assets (HTML/JS files)
 app.use(express.static(path.join(__dirname)));
 
-// API: Handle Self-Registration (Sign Up)
+// 📝 API: FULL ONBOARDING DATABASE REGISTRATION
 app.post('/api/register', async (req, res) => {
-    const { fullName, email, password, role } = req.body;
+    const { fullName, parentName, email, phone, className, rollNo, photoUrl, password, role } = req.body;
     
-    if (!usersDatabase[role]) {
-        return res.status(400).json({ success: false, message: "Invalid role selected." });
+    if (!serverDatabase[role]) {
+        return res.status(400).json({ success: false, message: "Invalid system domain selected." });
     }
 
-    // Check if user already exists
-    const userExists = usersDatabase[role].find(u => u.email === email);
+    // Check if unique email node already exists
+    const userExists = serverDatabase[role].find(u => u.email === email);
     if (userExists) {
-        return res.json({ success: false, message: "Email already registered in this portal!" });
+        return res.json({ success: false, message: "Security Warning: Email record already exists in database!" });
     }
 
-    // Encrypt password securely (Professional Standard)
+    // Encrypt password securely for compliance (Bcrypt encryption standard)
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    usersDatabase[role].push({
-        id: Date.now(),
+    // Auto-generate Unique institutional UID token
+    const uniqueUid = "PPS-" + Math.floor(10000 + Math.random() * 90000);
+
+    // Commit full-scale structured object matrix into server database
+    serverDatabase[role].push({
+        uid: uniqueUid,
         fullName,
+        parentName,
         email,
+        phone,
+        className,
+        rollNo,
+        photoUrl: photoUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150",
         password: hashedPassword
     });
 
-    res.json({ success: true, message: "Registration successful! You can now login." });
+    res.json({ success: true, message: "Database Record Committed! Switch to login tab to authenticate." });
 });
 
-// API: Handle Authentication (Login)
+// 🔑 API: AUTHENTICATION SECURE GATEWAY (LOGIN)
 app.post('/api/login', async (req, res) => {
     const { email, password, role } = req.body;
 
-    if (!usersDatabase[role]) {
-        return res.status(400).json({ success: false, message: "Invalid role." });
+    if (!serverDatabase[role]) {
+        return res.status(400).json({ success: false, message: "Invalid access domain configuration." });
     }
 
-    const user = usersDatabase[role].find(u => u.email === email);
+    // Find user record match
+    const user = serverDatabase[role].find(u => u.email === email);
     if (!user) {
-        return res.json({ success: false, message: "User not found! Please register first." });
+        return res.json({ success: false, message: "Access Denied: Record not found in central ledger." });
     }
 
-    // Compare encrypted password
+    // De-crypt and compare safe password tokens
     const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
-        req.session.user = { id: user.id, name: user.fullName, role: role };
-        res.json({ success: true, message: `Welcome ${user.fullName}!`, redirect: '/dashboard' });
+        // Assign secure server session tracking variables
+        req.session.user = { 
+            uid: user.uid,
+            name: user.fullName, 
+            parentName: user.parentName,
+            email: user.email,
+            phone: user.phone,
+            className: user.className,
+            rollNo: user.rollNo,
+            photoUrl: user.photoUrl,
+            role: role 
+        };
+        res.json({ success: true, message: "Verification Approved! Synchronizing profile tokens...", user: req.session.user });
     } else {
-        res.json({ success: false, message: "Incorrect password! Please try again." });
+        res.json({ success: false, message: "Authentication Failure: Secure key string mismatch." });
     }
-});
-
-// Dashboard Route
-app.get('/dashboard', (req, res) => {
-    if (!req.session.user) {
-        return res.redirect('/');
-    }
-    res.send(`
-        <div style="font-family: sans-serif; text-align: center; padding: 50px; background: #f1f5f9; min-height: 100vh;">
-            <div style="background: white; padding: 30px; border-radius: 20px; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
-                <h1 style="color: #4f46e5;">✨ PRIKART SYSTEM DASHBOARD</h1>
-                <p style="font-size: 18px;">Hello, <strong>${req.session.user.name}</strong>!</p>
-                <p style="color: #64748b;">Logged in successfully as: <span style="background: #e0e7ff; color: #4f46e5; padding: 3px 10px; border-radius: 12px; font-size: 14px; font-weight: bold;">${req.session.user.role.toUpperCase()}</span></p>
-                <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                <a href="/logout" style="background: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 10px; font-weight: bold;">Logout</a>
-            </div>
-        </div>
-    `);
-});
-
-// Logout Route
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-// Start Professional Server instance
-app.listen(PORT, () => {
-    console.log(`[SERVER] Prikart Public School is running live on http://localhost:${PORT}`);
-});
